@@ -9,7 +9,302 @@
       @page {
         size: A4 portrait;
         margin: 1.2cm;
+      }<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>시험 감독 지원 도우미</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @page {
+        size: A4 portrait;
+        margin: 1.2cm;
       }
+
+      @media print {
+        body {
+          margin: 0;
+          padding: 0;
+          background-color: white;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        .print-hidden {
+            display: none !important;
+        }
+
+        #printable-area {
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          display: block;
+        }
+        
+        /* ⭐️ 빈 페이지 제거를 위한 수정 */
+        .page-wrapper {
+           page-break-before: always; /* 이전 요소 뒤가 아닌, 현재 요소 앞에서 페이지를 나눔 */
+        }
+        .page-wrapper:first-child {
+           page-break-before: avoid; /* 첫 번째 요소 앞에서는 나누지 않음 */
+        }
+
+        .printable-unit {
+          page-break-inside: avoid !important;
+        }
+
+        .break-after-page {
+          page-break-after: always !important;
+        }
+
+        /* ===== 인쇄 스타일 최종 미세 조정 ===== */
+        .printable-container {
+            border: 1px solid #aaa !important;
+        }
+        
+        /* 응시현황표 스타일 (조금 키움) */
+        #attendance-sheet-area {
+            font-size: 9.2pt !important;
+        }
+        #attendance-sheet-area h1 { font-size: 21pt !important; }
+        #attendance-sheet-area table { font-size: 8.5pt !important; line-height: 1.2; }
+        #attendance-sheet-area .p-8 { padding: 1.1rem !important; }
+
+        /* 자리배치표 스타일 (조금 줄임) */
+        #seating-chart-area {
+             font-size: 9pt !important;
+        }
+        #seating-chart-area .h-40 { height: 6.5rem !important; } /* 좌석 높이 추가 축소 */
+        #seating-chart-area .p-8 { padding: 1rem !important; }
+        #seating-chart-area .my-8 { margin-top: 1rem !important; margin-bottom: 1rem !important; }
+        
+        /* 공통 스타일 */
+        .printable-container .text-5xl { font-size: 21pt !important; }
+        .printable-container .text-3xl { font-size: 14.5pt !important; }
+        .printable-container .text-2xl { font-size: 12.5pt !important; }
+        .printable-container .text-xl { font-size: 11.5pt !important; }
+        .printable-container .p-3 { padding: 0.35rem !important; }
+        .printable-container .p-2 { padding: 0.2rem 0.25rem !important; }
+
+        .print-logo-position {
+            top: 0.5rem !important;
+            right: 0.8rem !important;
+            width: 5.5rem !important;
+            height: 5.5rem !important;
+        }
+      }
+    </style>
+</head>
+<body class="bg-slate-100">
+    <div id="root">
+        <div class="min-h-screen p-4 sm:p-8 font-sans">
+            <div class="max-w-7xl mx-auto">
+                <header class="text-center mb-12 p-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-800 shadow-lg print-hidden">
+                    <h1 class="text-4xl sm:text-5xl font-extrabold text-white">응시현황표/자리배치표 생성기</h1>
+                </header>
+
+                <main>
+                    <div id="upload-section" class="bg-white rounded-xl shadow-lg p-6 sm:p-8 mb-8 print-hidden">
+                        <label for="csv-upload" class="w-full">
+                            <div class="flex flex-col items-center justify-center w-full h-48 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-200 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                <p class="mb-2 text-sm text-slate-500"><span class="font-semibold">클릭하여 업로드</span> 또는 파일을 드래그하세요</p>
+                                <p class="text-xs text-slate-500">시험시간표 CSV 파일</p>
+                            </div>
+                        </label>
+                        <input id="csv-upload" type="file" class="hidden" accept=".csv" />
+                        <p id="loading-message" class="text-center text-blue-600 mt-4 hidden">파일을 처리하는 중입니다...</p>
+                        <p id="error-message" class="text-center text-red-600 mt-4 bg-red-100 p-3 rounded-md hidden"></p>
+                    </div>
+
+                    <div id="controls-section" class="bg-white rounded-xl shadow-lg p-6 sm:p-8 mb-8 print-hidden hidden">
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+                            <div class="flex flex-col"><label for="school-year" class="font-semibold text-slate-700 mb-1">학년도</label><input id="school-year" type="number" class="p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" /></div>
+                            <div class="flex flex-col"><label for="semester" class="font-semibold text-slate-700 mb-1">학기</label><select id="semester" class="p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"><option value="1">1학기</option><option value="2">2학기</option></select></div>
+                            <div class="flex flex-col"><label for="exam-date" class="font-semibold text-slate-700 mb-1">고사일</label><select id="exam-date" class="p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"></select></div>
+                            <div class="flex flex-col"><label for="exam-period" class="font-semibold text-slate-700 mb-1">교시</label><select id="exam-period" class="p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" disabled><option value="">날짜를 선택하세요</option></select></div>
+                            <div class="flex flex-col"><label for="exam-subject" class="font-semibold text-slate-700 mb-1">과목명 (다중 선택: Ctrl/Shift)</label><select id="exam-subject" multiple size="5" class="p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" disabled><option>교시를 선택하세요</option></select></div>
+                        </div>
+                        <div class="mt-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                            <div class="flex flex-wrap items-center gap-4">
+                                <button id="generate-btn" disabled class="bg-blue-600 text-white font-bold py-3 px-8 rounded-md hover:bg-blue-700 transition-transform transform hover:scale-105 shadow-lg focus:outline-none focus:ring-4 focus:ring-indigo-300 disabled:bg-slate-400 disabled:cursor-not-allowed disabled:transform-none">생성하기</button>
+                                <input id="logo-upload" type="file" class="hidden" accept="image/*" />
+                                <div id="logo-controls"><label for="logo-upload" class="bg-green-500 text-white font-bold py-3 px-6 rounded-md hover:bg-green-600 transition-colors cursor-pointer shadow-lg">학교 로고 삽입</label></div>
+                            </div>
+                            <button id="print-btn" class="bg-emerald-500 text-white font-bold py-3 px-6 rounded-md hover:bg-emerald-600 transition-transform transform hover:scale-105 shadow-lg focus:outline-none focus:ring-4 focus:ring-emerald-300 flex items-center hidden">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v6a2 2 0 002 2h1v-4a1 1 0 011-1h8a1 1 0 011 1v4h1a2 2 0 002-2v-6a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd" /></svg>
+                                인쇄하기
+                            </button>
+                        </div>
+                    </div>
+                    <div id="printable-area" class="space-y-8"></div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let allStudents = [];
+            let schoolLogo = null;
+            const csvUpload = document.getElementById('csv-upload');
+            const loadingMessage = document.getElementById('loading-message');
+            const errorMessage = document.getElementById('error-message');
+            const controlsSection = document.getElementById('controls-section');
+            const printableArea = document.getElementById('printable-area');
+            const schoolYearInput = document.getElementById('school-year');
+            const semesterSelect = document.getElementById('semester');
+            const dateSelect = document.getElementById('exam-date');
+            const periodSelect = document.getElementById('exam-period');
+            const subjectSelect = document.getElementById('exam-subject');
+            const generateBtn = document.getElementById('generate-btn');
+            const printBtn = document.getElementById('print-btn');
+            const logoUpload = document.getElementById('logo-upload');
+            const logoControls = document.getElementById('logo-controls');
+            schoolYearInput.value = new Date().getFullYear().toString();
+            
+            const parseCsv = (csvText) => {
+                const processedText = csvText.startsWith('\uFEFF') ? csvText.substring(1) : csvText;
+                const rows = processedText.trim().split(/\r?\n/);
+                rows.shift(); // Remove header row
+                return rows.map((row, rowIndex) => {
+                    if (!row.trim()) return null;
+
+                    // Use regex to split by comma, but ignore commas inside double quotes
+                    const valuesRaw = row.trim().split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+                    
+                    // Clean up values: remove surrounding quotes and trim whitespace
+                    const values = valuesRaw.map(v => {
+                        let value = v.trim();
+                        if (value.startsWith('"') && value.endsWith('"')) {
+                            // Remove quotes and un-escape double quotes ("") inside
+                            return value.substring(1, value.length - 1).replace(/""/g, '"');
+                        }
+                        return value;
+                    });
+                    
+                    if (values.length < 9) { console.warn(`Skipping malformed row #${rowIndex + 2}: not enough columns.`, row); return null; }
+                    
+                    try {
+                        const studentId = values[1]?.trim(); 
+                        const name = values[2]?.trim(); 
+                        const date = values[3]?.trim(); 
+                        const period = values[4]?.trim(); 
+                        const subjectBase = values[5]?.trim(); 
+                        const subjectModifier = values[6]?.trim(); 
+                        const room = values[7]?.trim(); 
+                        const proctor = values[8]?.trim();
+
+                        if (!studentId || !name || !date || !period || !subjectBase || !subjectModifier || !room || !proctor) { console.warn(`Skipping row #${rowIndex + 2} with missing essential data.`, row); return null; }
+                        if (studentId.length !== 5 || !/^\d+$/.test(studentId)) { console.warn(`Skipping invalid student ID format in row #${rowIndex + 2}:`, studentId); return null; }
+                        
+                        const grade = parseInt(studentId[0], 10); 
+                        const studentClass = parseInt(studentId.substring(1, 3), 10); 
+                        const number = parseInt(studentId.substring(3, 5), 10);
+                        
+                        if (isNaN(grade) || isNaN(studentClass) || isNaN(number)) { console.warn(`Skipping unparsable student ID in row #${rowIndex + 2}:`, studentId); return null; }
+                        
+                        return { studentId, name, date, period, subject: `${subjectBase} ${subjectModifier}`, grade, class: studentClass, number, room, proctor };
+                    } catch (e) { console.error(`Error parsing row #${rowIndex + 2}:`, row, e); return null; }
+                }).filter(student => student !== null);
+            };
+
+            const showError = (message) => { errorMessage.textContent = message; errorMessage.classList.remove('hidden'); };
+            const hideError = () => { errorMessage.classList.add('hidden'); };
+            const resetUI = () => { controlsSection.classList.add('hidden'); printableArea.innerHTML = ''; printBtn.classList.add('hidden'); hideError(); };
+            const updateDateOptions = () => {
+                const dates = [...new Set(allStudents.map(s => s.date))].sort();
+                dateSelect.innerHTML = dates.map(date => `<option value="${date}">${date}</option>`).join('');
+                if (dates.length > 0) { dateSelect.value = dates[0]; }
+                updatePeriodOptions();
+            };
+            const updatePeriodOptions = () => {
+                const selectedDate = dateSelect.value;
+                if (!selectedDate) { periodSelect.innerHTML = '<option value="">날짜를 선택하세요</option>'; periodSelect.disabled = true; return; }
+                const relevantPeriods = [...new Set(allStudents.filter(s => s.date === selectedDate).map(s => s.period))].sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+                periodSelect.innerHTML = relevantPeriods.map(p => `<option value="${p}">${p}교시</option>`).join('');
+                periodSelect.disabled = false;
+                if(relevantPeriods.length > 0) { periodSelect.value = relevantPeriods[0]; }
+                updateSubjectOptions();
+            };
+            const updateSubjectOptions = () => {
+                const selectedDate = dateSelect.value; const selectedPeriod = periodSelect.value;
+                 if (!selectedPeriod) { subjectSelect.innerHTML = '<option>교시를 선택하세요</option>'; subjectSelect.disabled = true; return; }
+                const relevantSubjects = [...new Set(allStudents.filter(s => s.date === selectedDate && s.period === selectedPeriod).map(s => s.subject))].sort();
+                subjectSelect.innerHTML = relevantSubjects.map(s => `<option value="${s}">${s}</option>`).join('');
+                subjectSelect.disabled = false;
+            };
+            const resetGeneratedOutput = () => { printableArea.innerHTML = ''; printBtn.classList.add('hidden'); };
+            csvUpload.addEventListener('change', (event) => {
+                const file = event.target.files?.[0]; if (!file) return; resetUI(); loadingMessage.classList.remove('hidden');
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const text = e.target?.result; const students = parseCsv(text);
+                        if (students.length === 0) throw new Error("CSV 파일에서 유효한 학생 데이터를 찾을 수 없습니다.");
+                        allStudents = students; controlsSection.classList.remove('hidden'); updateDateOptions();
+                    } catch (err) { showError('CSV 파일을 처리하는 중 오류가 발생했습니다. 파일 형식을 확인해주세요.'); console.error(err); }
+                    finally { loadingMessage.classList.add('hidden'); }
+                };
+                reader.onerror = () => { showError('파일을 읽는 중 오류가 발생했습니다.'); loadingMessage.classList.add('hidden'); }
+                reader.readAsText(file, 'UTF-8');
+            });
+            dateSelect.addEventListener('change', updatePeriodOptions);
+            periodSelect.addEventListener('change', updateSubjectOptions);
+            [schoolYearInput, semesterSelect, dateSelect, periodSelect, subjectSelect].forEach(el => { el.addEventListener('change', resetGeneratedOutput); });
+            subjectSelect.addEventListener('change', () => { const selectedOptions = Array.from(subjectSelect.selectedOptions); generateBtn.disabled = selectedOptions.length === 0; });
+            logoUpload.addEventListener('change', (event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => { schoolLogo = reader.result; updateLogoControls(); if (printableArea.innerHTML) generateContent(); };
+                    reader.readAsDataURL(file);
+                }
+            });
+            generateBtn.addEventListener('click', () => { const selectedSubjects = Array.from(subjectSelect.selectedOptions).map(opt => opt.value); if (selectedSubjects.length === 0) { showError("하나 이상의 과목을 선택해야 합니다."); return; } hideError(); generateContent(); });
+            printBtn.addEventListener('click', () => { window.print(); });
+            const updateLogoControls = () => {
+                 if (!schoolLogo) { logoControls.innerHTML = `<label for="logo-upload" class="bg-green-500 text-white font-bold py-3 px-6 rounded-md hover:bg-green-600 transition-colors cursor-pointer shadow-lg">학교 로고 삽입</label>`; }
+                 else {
+                     logoControls.innerHTML = `<div class="flex items-center gap-2 p-2 border rounded-lg bg-slate-50"><img src="${schoolLogo}" alt="School logo preview" class="h-10 w-10 object-contain border rounded-md" /><label for="logo-upload" class="text-sm bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 px-3 rounded-md cursor-pointer transition-colors">변경</label><button id="remove-logo-btn" class="text-sm bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-3 rounded-md transition-colors">삭제</button></div>`;
+                     document.getElementById('remove-logo-btn').addEventListener('click', () => { schoolLogo = null; updateLogoControls(); if (printableArea.innerHTML) generateContent(); });
+                 }
+            };
+            const generateContent = () => {
+                const selectedDate = dateSelect.value; const selectedPeriod = periodSelect.value; const selectedSubjects = Array.from(subjectSelect.selectedOptions).map(opt => opt.value); const schoolYear = schoolYearInput.value; const semesterText = semesterSelect.options[semesterSelect.selectedIndex].text;
+                const outputData = selectedSubjects.map(subject => {
+                    const filtered = allStudents.filter(s => s.date === selectedDate && s.period === selectedPeriod && s.subject === subject).sort((a, b) => a.class - b.class || a.number - b.number);
+                    const { room, proctor } = filtered[0] || { room: 'N/A', proctor: 'N/A' };
+                    return { students: filtered, examDate: selectedDate, period: selectedPeriod, subject, proctor, room, logo: schoolLogo, schoolYear, semester: semesterText };
+                });
+                printableArea.innerHTML = outputData.map(props => generatePrintLayout(props)).join('');
+                printBtn.classList.remove('hidden');
+            };
+            const generatePrintLayout = (props) => {
+                return `<div class="page-wrapper"><div class="printable-unit break-after-page">${generateAttendanceSheet(props)}</div><div class="printable-unit">${generateSeatingChart(props)}</div></div>`;
+            };
+            const generateAttendanceSheet = ({ students, examDate, period, subject, room, logo, schoolYear, semester }) => {
+                const studentRows = Array.from({ length: 30 }).map((_, index) => {
+                    const student = students[index];
+                    return `<tr><td class="border border-black p-2 print:py-1 print:px-1">${index + 1}</td><td class="border border-black p-2 print:py-1 print:px-1">${student?.grade ?? ''}</td><td class="border border-black p-2 print:py-1 print:px-1">${student?.class ?? ''}</td><td class="border border-black p-2 print:py-1 print:px-1">${student?.number ?? ''}</td><td class="border border-black p-2 bg-yellow-100 print:py-1 print:px-1">${student?.studentId ?? ''}</td><td class="border border-black p-2 bg-yellow-100 print:py-1 print:px-1">${student?.name ?? ''}</td><td class="border border-black p-2 print:py-1 print:px-1"></td><td class="border border-black p-2 print:py-1 print:px-1"></td></tr>`;
+                }).join('');
+                const logoDiv = logo ? `<div style="background-image: url(${logo});" class="bg-contain bg-center bg-no-repeat absolute print-logo-position" aria-label="School Logo" role="img"></div>` : '';
+                return `<div id="attendance-sheet-area" class="bg-white p-8 border border-black font-['Malgun_Gothic'] printable-container relative print:p-4"><h1 class="text-center text-5xl font-bold mb-4 print:text-3xl print:mb-2">&lt;응시현황표&gt;</h1>${logoDiv}<div class="text-base mb-4 text-center print:text-xs print:mb-2">OMR 카드 회수시 &lt;응시현황표&gt; OMR카드 봉투에 동봉</div><div class="border border-black"><div class="grid grid-cols-10"><div class="col-span-10 text-center font-bold text-3xl p-3 bg-blue-700 text-white border-b border-black print:text-xl print:py-1 print:px-1">${schoolYear}학년도 ${semester} 기말고사</div><div class="col-span-2 text-center p-3 font-bold bg-slate-200 border-r border-black text-xl print:text-base print:py-1 print:px-1">고사일</div><div class="col-span-3 text-center p-3 border-r border-black text-2xl print:text-lg print:py-1 print:px-1">${examDate}</div><div class="col-span-2 text-center p-3 font-bold bg-slate-200 border-r border-black text-xl print:text-base print:py-1 print:px-1">교시</div><div class="col-span-3 text-center p-3 text-2xl print:text-lg print:py-1 print:px-1">${period}교시</div></div><div class="grid grid-cols-10 border-t border-black"><div class="col-span-2 text-center p-3 font-bold bg-slate-200 border-r border-black text-xl print:text-base print:py-1 print:px-1">과목명</div><div class="col-span-8 text-center p-3 text-2xl print:text-lg print:py-1 print:px-1">${subject}</div></div><div class="grid grid-cols-10 border-t border-black"><div class="col-span-2 text-center p-3 font-bold bg-slate-200 border-r border-black text-xl print:text-base print:py-1 print:px-1">시험장소</div><div class="col-span-3 text-center p-3 border-r border-black text-2xl print:text-lg print:py-1 print:px-1">${room}</div><div class="col-span-2 text-center p-3 font-bold bg-slate-200 border-r border-black text-xl print:text-base print:py-1 print:px-1">응시인원</div><div class="col-span-3 text-center p-3 text-2xl print:text-lg print:py-1 print:px-1">${students.length} 명</div></div></div><div class="text-base mt-2 print:text-[10px] print:mt-2">※ 출결 : 결석○, 지각ø (*위탁생 결번 처리)<br />※ 입실시간 : 지각생 입실시간 기록</div><div class="mt-4 print:mt-2"><table class="w-full border-collapse border border-black text-center text-lg print:text-xs print:leading-tight"><thead class="bg-slate-200 font-bold"><tr><th class="border border-black p-2 print:py-1 print:px-1">순번</th><th class="border border-black p-2 print:py-1 print:px-1">학년</th><th class="border border-black p-2 print:py-1 print:px-1">반</th><th class="border border-black p-2 print:py-1 print:px-1">번호</th><th class="border border-black p-2 print:py-1 print:px-1">학번</th><th class="border border-black p-2 print:py-1 print:px-1">이름</th><th class="border border-black p-2 print:py-1 print:px-1">출결</th><th class="border border-black p-2 print:py-1 print:px-1">입실시간</th></tr></thead><tbody>${studentRows}</tbody></table></div></div>`;
+            };
+            const generateSeatingChart = ({ students, subject, room, proctor, logo }) => {
+                const numStudents = students.length; const numCols = 5; const numRows = numStudents > 0 ? Math.ceil(numStudents / numCols) : 0; const totalSeats = numRows * numCols;
+                const seats = Array.from({ length: totalSeats }).map((_, index) => {
+                    const rowIndex = Math.floor(index / numCols); const colIndex = index % numCols; const studentIndex = colIndex * numRows + rowIndex; const student = studentIndex < numStudents ? students[studentIndex] : undefined; const seatNumber = studentIndex + 1;
+                    return `<div class="relative border border-gray-300 rounded-lg p-2 h-40 flex flex-col justify-center items-center bg-gray-100 shadow-md print:h-32 print:p-1 print:shadow-none print:border-gray-400"><div class="absolute top-1 left-2 font-bold text-lg print:text-sm">${seatNumber}</div>${student ? `<div class="text-center"><div class="text-xl text-blue-600 print:text-base">${student.studentId}</div><div class="font-bold text-2xl print:text-lg">${student.name}</div></div>` : `<div aria-hidden="true">&nbsp;</div>`}</div>`;
+                }).join('');
+                const logoDiv = logo ? `<div style="background-image: url(${logo});" class="bg-contain bg-center bg-no-repeat absolute print-logo-position" aria-label="School Logo" role="img"></div>` : '';
+                return `<div id="seating-chart-area" class="bg-white p-8 border border-black font-['Malgun_Gothic'] printable-container relative print:p-4">${logoDiv}<div class="mb-8 print:mb-4"><div class="flex justify-between items-start"><div class="border border-red-500 p-4 text-red-500 font-bold text-3xl print:text-2xl print:p-2">${subject}</div><div class="text-center flex-grow"><h1 class="text-5xl font-bold mb-2 print:text-4xl print:mb-1">&lt;자리배치표&gt;</h1></div><div class="w-40 print:w-28"></div></div><div class="text-3xl text-center space-y-1 mt-2 pt-2 print:text-xl print:mt-1 print:pt-1"><div>과 목 명 : ${subject}</div><div>고 사 실 : ${room}</div><div>지도교사 : ${proctor}</div></div></div><div class="flex justify-center my-8 print:my-4"><div class="border border-black p-4 w-48 text-center font-bold text-2xl print:text-xl print:p-2">교탁</div></div><div class="grid grid-cols-5 gap-4">${seats}</div></div>`;
+            };
+        });
+    </script>
+</body>
+</html>
 
       @media print {
         body {
@@ -294,3 +589,4 @@
     </script>
 </body>
 </html>
+
