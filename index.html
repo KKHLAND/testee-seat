@@ -8,7 +8,7 @@
     <style>
       @page {
         size: A4 portrait;
-        margin: 1.2cm;
+        margin: 1.2cm; /* 기본 여백으로 복원 */
       }
 
       @media print {
@@ -31,20 +31,14 @@
           display: block;
         }
         
-        /* ⭐️ 빈 페이지 제거를 위한 수정 */
-        .page-wrapper {
-           page-break-before: always; /* 이전 요소 뒤가 아닌, 현재 요소 앞에서 페이지를 나눔 */
-        }
-        .page-wrapper:first-child {
-           page-break-before: avoid; /* 첫 번째 요소 앞에서는 나누지 않음 */
-        }
-
+        /* 각 printable-unit은 페이지가 나뉘지 않도록 함 */
         .printable-unit {
           page-break-inside: avoid !important;
         }
-
-        .break-after-page {
-          page-break-after: always !important;
+        
+        /* 자리배치표(seating-chart-wrapper) 앞에서 항상 페이지를 나누도록 설정 */
+        .seating-chart-wrapper {
+           page-break-before: always !important; 
         }
 
         /* ===== 인쇄 스타일 최종 미세 조정 ===== */
@@ -52,7 +46,7 @@
             border: 1px solid #aaa !important;
         }
         
-        /* 응시현황표 스타일 (조금 키움) */
+        /* 응시현황표 스타일 (원본에 가깝게 복원) */
         #attendance-sheet-area {
             font-size: 9.2pt !important;
         }
@@ -60,15 +54,15 @@
         #attendance-sheet-area table { font-size: 8.5pt !important; line-height: 1.2; }
         #attendance-sheet-area .p-8 { padding: 1.1rem !important; }
 
-        /* 자리배치표 스타일 (조금 줄임) */
+        /* 자리배치표 스타일 (원본에 가깝게 복원) */
         #seating-chart-area {
              font-size: 9pt !important;
         }
-        #seating-chart-area .h-40 { height: 6.5rem !important; } /* 좌석 높이 추가 축소 */
+        #seating-chart-area .h-40 { height: 6.5rem !important; } 
         #seating-chart-area .p-8 { padding: 1rem !important; }
         #seating-chart-area .my-8 { margin-top: 1rem !important; margin-bottom: 1rem !important; }
         
-        /* 공통 스타일 */
+        /* 공통 스타일 (원본에 가깝게 복원) */
         .printable-container .text-5xl { font-size: 21pt !important; }
         .printable-container .text-3xl { font-size: 14.5pt !important; }
         .printable-container .text-2xl { font-size: 12.5pt !important; }
@@ -274,7 +268,15 @@
                 printBtn.classList.remove('hidden');
             };
             const generatePrintLayout = (props) => {
-                return `<div class="page-wrapper"><div class="printable-unit break-after-page">${generateAttendanceSheet(props)}</div><div class="printable-unit">${generateSeatingChart(props)}</div></div>`;
+                // 각 섹션을 div로 감싸고, 두 번째 섹션에 페이지 나누기 클래스를 적용
+                return `
+                    <div class="printable-unit">
+                        ${generateAttendanceSheet(props)}
+                    </div>
+                    <div class="printable-unit seating-chart-wrapper">
+                        ${generateSeatingChart(props)}
+                    </div>
+                `;
             };
             const generateAttendanceSheet = ({ students, examDate, period, subject, room, logo, schoolYear, semester, examType }) => {
                 const studentRows = Array.from({ length: 30 }).map((_, index) => {
