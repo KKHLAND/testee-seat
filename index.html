@@ -29,14 +29,16 @@
           background: #94a3b8;
       }
 
-      /* ================= 인쇄용 스타일 (기존 기능 유지) ================= */
+      /* ================= 인쇄용 스타일 (기존 기능 유지 및 빈 페이지 방지 수정) ================= */
       @page {
         size: A4 portrait;
         margin: 1.2cm;
       }
 
       @media print {
-        body {
+        html, body {
+          height: auto !important;
+          min-height: 0 !important;
           margin: 0;
           padding: 0;
           background-color: white;
@@ -63,11 +65,10 @@
            page-break-before: always !important; 
         }
 
-        .subject-print-block {
-            page-break-after: always;
-        }
-        #printable-area > .subject-print-block:last-child {
-            page-break-after: avoid !important;
+        /* 각 과목별 인쇄 블록 다음에 페이지를 나누되, 마지막 블록 다음에는 나누지 않음 (최신 규격 적용) */
+        .subject-print-block:not(:last-child) {
+            page-break-after: always !important;
+            break-after: page !important;
         }
 
         .printable-container {
@@ -105,8 +106,8 @@
       }
     </style>
 </head>
-<body class="bg-[#F4F6F9] font-sans antialiased text-slate-800 min-h-screen flex flex-col">
-    <div id="root" class="flex-grow flex flex-col">
+<body class="bg-[#F4F6F9] font-sans antialiased text-slate-800 min-h-screen print:min-h-0 print:bg-white print:block flex flex-col">
+    <div id="root" class="flex-grow flex flex-col print:block">
         <!-- 헤더 영역 (이미지 기반 블루 그라데이션 적용) -->
         <header class="bg-gradient-to-r from-[#0a1835] via-[#0a488c] to-[#008fc7] pt-16 pb-24 px-4 shadow-lg print-hidden relative overflow-hidden">
             <div class="max-w-7xl mx-auto text-center relative z-10">
@@ -127,8 +128,8 @@
             <div class="absolute -bottom-24 left-0 w-64 h-64 bg-blue-500/20 blur-[80px] rounded-full pointer-events-none"></div>
         </header>
 
-        <!-- [수정] print:mt-0 추가 : 인쇄 시 음수 마진(-mt-16)으로 인해 제목이 잘리는 현상 방지 -->
-        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-8 -mt-16 print:mt-0 relative z-20 pb-16">
+        <!-- [수정] print:mt-0 및 print:pb-0 추가 : 인쇄 시 하단 여백 때문에 빈 페이지 생기는 현상 방지 -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-8 -mt-16 print:mt-0 relative z-20 pb-16 print:pb-0 print:mb-0">
             <!-- 파일 업로드 섹션 -->
             <div id="upload-section" class="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] p-8 sm:p-10 mb-8 print-hidden border border-slate-100 overflow-hidden relative">
                 <!-- 상단 장식 바 -->
@@ -258,8 +259,8 @@
                 </div>
             </div>
 
-            <!-- 결과물이 출력되는 영역 -->
-            <div id="printable-area" class="pb-10"></div>
+            <!-- 결과물이 출력되는 영역 (print:pb-0 및 print:mb-0 추가) -->
+            <div id="printable-area" class="pb-10 print:pb-0 print:mb-0"></div>
         </main>
     </div>
 
@@ -456,7 +457,6 @@
             };
 
             const generatePrintLayout = (props) => {
-                // [수정] print:overflow-visible, print:border-0, print:mb-0 추가 : 인쇄 블록이 화면 바깥으로 나가서 잘리지 않도록 보호
                 return `
                     <div class="subject-print-block print:shadow-none shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-xl overflow-hidden print:overflow-visible print:border-0 print:mb-0 mb-8 border border-slate-200 bg-white">
                         <div class="printable-unit attendance-sheet-wrapper">
@@ -469,14 +469,13 @@
                 `;
             };
 
-            // [수정] 모든 print:text-black, print:bg-gray-200 등 인쇄용 색상 오버라이드 클래스 삭제 -> 화면에 보이는 원본 색상 유지
             const generateAttendanceSheet = ({ students, examDate, period, subject, room, logo, schoolYear, semester, examType }) => {
                 const studentRows = Array.from({ length: 30 }).map((_, index) => {
                     const student = students[index];
                     return `<tr><td class="border border-slate-800 p-2 print:py-1 print:px-1">${index + 1}</td><td class="border border-slate-800 p-2 print:py-1 print:px-1">${student?.grade ?? ''}</td><td class="border border-slate-800 p-2 print:py-1 print:px-1">${student?.class ?? ''}</td><td class="border border-slate-800 p-2 print:py-1 print:px-1">${student?.number ?? ''}</td><td class="border border-slate-800 p-2 bg-yellow-50 print:py-1 print:px-1 font-semibold">${student?.studentId ?? ''}</td><td class="border border-slate-800 p-2 bg-yellow-50 print:py-1 print:px-1 font-semibold">${student?.name ?? ''}</td><td class="border border-slate-800 p-2 print:py-1 print:px-1"></td><td class="border border-slate-800 p-2 print:py-1 print:px-1"></td></tr>`;
                 }).join('');
                 const logoDiv = logo ? `<div style="background-image: url(${logo});" class="bg-contain bg-center bg-no-repeat absolute print-logo-position" aria-label="School Logo" role="img"></div>` : '';
-                return `<div id="attendance-sheet-area" class="bg-white p-8 border-0 font-['Malgun_Gothic'] printable-container relative print:p-4"><h1 class="text-center text-5xl font-extrabold mb-4 print:text-3xl print:mb-2 text-slate-800 tracking-tight">&lt;응시현황표&gt;</h1>${logoDiv}<div class="text-base mb-4 text-center print:text-xs print:mb-2 text-slate-600 font-medium">OMR 카드 회수시 &lt;응시현황표&gt; OMR카드 봉투에 동봉</div><div class="border-2 border-slate-800"><div class="grid grid-cols-10"><div class="col-span-10 text-center font-bold text-3xl p-3 bg-slate-800 text-white border-b border-slate-800 print:text-xl print:py-1 print:px-1 tracking-wide">${schoolYear}학년도 ${semester} ${examType}</div><div class="col-span-2 text-center p-3 font-bold bg-slate-100 border-r border-slate-800 text-xl print:text-base print:py-1 print:px-1">고사일</div><div class="col-span-3 text-center p-3 border-r border-slate-800 text-2xl print:text-lg print:py-1 print:px-1 font-semibold">${examDate}</div><div class="col-span-2 text-center p-3 font-bold bg-slate-100 border-r border-slate-800 text-xl print:text-base print:py-1 print:px-1">교시</div><div class="col-span-3 text-center p-3 text-2xl print:text-lg print:py-1 print:px-1 font-semibold">${period}교시</div></div><div class="grid grid-cols-10 border-t border-slate-800"><div class="col-span-2 text-center p-3 font-bold bg-slate-100 border-r border-slate-800 text-xl print:text-base print:py-1 print:px-1">과목명</div><div class="col-span-8 text-center p-3 text-2xl print:text-lg print:py-1 print:px-1 font-bold text-blue-800">${subject}</div></div><div class="grid grid-cols-10 border-t border-slate-800"><div class="col-span-2 text-center p-3 font-bold bg-slate-100 border-r border-slate-800 text-xl print:text-base print:py-1 print:px-1">시험장소</div><div class="col-span-3 text-center p-3 border-r border-slate-800 text-2xl print:text-lg print:py-1 print:px-1 font-bold text-rose-700">${room}</div><div class="col-span-2 text-center p-3 font-bold bg-slate-100 border-r border-slate-800 text-xl print:text-base print:py-1 print:px-1">응시인원</div><div class="col-span-3 text-center p-3 text-2xl print:text-lg print:py-1 print:px-1 font-semibold">${students.length} 명</div></div></div><div class="text-base mt-2 print:text-[10px] print:mt-2 text-slate-600 font-medium">※ 출결 : 결석○, 지각ø (*위탁생 결번 처리)<br />※ 입실시간 : 지각생 입실시간 기록</div><div class="mt-4 print:mt-2"><table class="w-full border-collapse border-2 border-slate-800 text-center text-lg print:text-xs print:leading-tight"><thead class="bg-slate-100 font-bold text-slate-700"><tr><th class="border border-slate-800 p-2 print:py-1 print:px-1">순번</th><th class="border border-slate-800 p-2 print:py-1 print:px-1">학년</th><th class="border border-slate-800 p-2 print:py-1 print:px-1">반</th><th class="border border-slate-800 p-2 print:py-1 print:px-1">번호</th><th class="border border-slate-800 p-2 print:py-1 print:px-1">학번</th><th class="border border-slate-800 p-2 print:py-1 print:px-1">이름</th><th class="border border-slate-800 p-2 print:py-1 print:px-1">출결</th><th class="border border-slate-800 p-2 print:py-1 print:px-1">입실시간</th></tr></thead><tbody>${studentRows}</tbody></table></div></div>`;
+                return `<div id="attendance-sheet-area" class="bg-white p-8 border-0 font-['Malgun_Gothic'] printable-container relative print:p-4"><h1 class="text-center text-5xl font-extrabold mb-4 print:text-3xl print:mb-2 text-slate-800 tracking-tight">&lt;응시현황표&gt;</h1>${logoDiv}<div class="text-base mb-4 text-center print:text-xs print:mb-2 text-slate-600 font-medium">OMR 카드 회수시 &lt;응시현황표&gt; OMR카드 봉투에 동봉</div><div class="border-2 border-slate-800"><div class="grid grid-cols-10"><div class="col-span-10 text-center font-bold text-3xl p-3 bg-blue-800 text-white border-b border-blue-800 print:text-xl print:py-1 print:px-1 tracking-wide">${schoolYear}학년도 ${semester} ${examType}</div><div class="col-span-2 text-center p-3 font-bold bg-slate-100 border-r border-slate-800 text-xl print:text-base print:py-1 print:px-1">고사일</div><div class="col-span-3 text-center p-3 border-r border-slate-800 text-2xl print:text-lg print:py-1 print:px-1 font-semibold">${examDate}</div><div class="col-span-2 text-center p-3 font-bold bg-slate-100 border-r border-slate-800 text-xl print:text-base print:py-1 print:px-1">교시</div><div class="col-span-3 text-center p-3 text-2xl print:text-lg print:py-1 print:px-1 font-semibold">${period}교시</div></div><div class="grid grid-cols-10 border-t border-slate-800"><div class="col-span-2 text-center p-3 font-bold bg-slate-100 border-r border-slate-800 text-xl print:text-base print:py-1 print:px-1">과목명</div><div class="col-span-8 text-center p-3 text-2xl print:text-lg print:py-1 print:px-1 font-bold text-blue-800">${subject}</div></div><div class="grid grid-cols-10 border-t border-slate-800"><div class="col-span-2 text-center p-3 font-bold bg-slate-100 border-r border-slate-800 text-xl print:text-base print:py-1 print:px-1">시험장소</div><div class="col-span-3 text-center p-3 border-r border-slate-800 text-2xl print:text-lg print:py-1 print:px-1 font-bold text-rose-700">${room}</div><div class="col-span-2 text-center p-3 font-bold bg-slate-100 border-r border-slate-800 text-xl print:text-base print:py-1 print:px-1">응시인원</div><div class="col-span-3 text-center p-3 text-2xl print:text-lg print:py-1 print:px-1 font-semibold">${students.length} 명</div></div></div><div class="text-base mt-2 print:text-[10px] print:mt-2 text-slate-600 font-medium">※ 출결 : 결석○, 지각ø (*위탁생 결번 처리)<br />※ 입실시간 : 지각생 입실시간 기록</div><div class="mt-4 print:mt-2"><table class="w-full border-collapse border-2 border-slate-800 text-center text-lg print:text-xs print:leading-tight"><thead class="bg-slate-100 font-bold text-slate-700"><tr><th class="border border-slate-800 p-2 print:py-1 print:px-1">순번</th><th class="border border-slate-800 p-2 print:py-1 print:px-1">학년</th><th class="border border-slate-800 p-2 print:py-1 print:px-1">반</th><th class="border border-slate-800 p-2 print:py-1 print:px-1">번호</th><th class="border border-slate-800 p-2 print:py-1 print:px-1">학번</th><th class="border border-slate-800 p-2 print:py-1 print:px-1">이름</th><th class="border border-slate-800 p-2 print:py-1 print:px-1">출결</th><th class="border border-slate-800 p-2 print:py-1 print:px-1">입실시간</th></tr></thead><tbody>${studentRows}</tbody></table></div></div>`;
             };
 
             const generateSeatingChart = ({ students, subject, room, proctor, logo }) => {
@@ -486,7 +485,7 @@
                     return `<div class="relative border-2 border-slate-200 rounded-xl p-2 h-40 flex flex-col justify-center items-center bg-slate-50 shadow-sm print:h-32 print:p-1 print:shadow-none print:rounded-lg"><div class="absolute top-1.5 left-2.5 font-bold text-slate-400 text-lg print:text-sm">${seatNumber}</div>${student ? `<div class="text-center w-full"><div class="text-xl text-blue-600 font-semibold mb-1 print:text-base">${student.studentId}</div><div class="font-extrabold text-2xl text-slate-800 tracking-wide print:text-lg bg-white rounded-md py-1 mx-1 shadow-sm border border-slate-100 print:shadow-none print:p-0">${student.name}</div></div>` : `<div aria-hidden="true">&nbsp;</div>`}</div>`;
                 }).join('');
                 const logoDiv = logo ? `<div style="background-image: url(${logo});" class="bg-contain bg-center bg-no-repeat absolute print-logo-position" aria-label="School Logo" role="img"></div>` : '';
-                return `<div id="seating-chart-area" class="bg-white p-8 border-0 font-['Malgun_Gothic'] printable-container relative print:p-4">${logoDiv}<div class="mb-8 print:mb-4"><div class="flex justify-between items-start"><div class="border-2 border-rose-500 rounded-lg p-3 text-rose-600 font-extrabold text-3xl print:text-2xl print:p-2 print:rounded-none shadow-sm print:shadow-none bg-rose-50">${subject}</div><div class="text-center flex-grow"><h1 class="text-5xl font-extrabold mb-2 print:text-4xl print:mb-1 text-slate-800 tracking-tight">&lt;자리배치표&gt;</h1></div><div class="w-40 print:w-28"></div></div><div class="text-2xl text-center space-y-1.5 mt-4 pt-4 border-t border-slate-200 print:border-t-0 print:text-xl print:mt-1 print:pt-1 font-medium text-slate-700"><div class="inline-block mr-6"><span class="text-slate-400 mr-2">과목명</span><span class="font-bold">${subject}</span></div><div class="inline-block mr-6"><span class="text-slate-400 mr-2">고사실</span><span class="font-bold text-rose-600">${room}</span></div><div class="inline-block"><span class="text-slate-400 mr-2">지도교사</span><span class="font-bold">${proctor}</span></div></div></div><div class="flex justify-center my-8 print:my-4"><div class="border-2 border-slate-800 bg-slate-800 text-white rounded-lg p-3 w-56 text-center font-bold text-2xl print:text-xl print:p-2 print:rounded-none shadow-md print:shadow-none tracking-widest">교 탁</div></div><div class="grid grid-cols-5 gap-4 print:gap-2">${seats}</div></div>`;
+                return `<div id="seating-chart-area" class="bg-white p-8 border-0 font-['Malgun_Gothic'] printable-container relative print:p-4">${logoDiv}<div class="mb-8 print:mb-4"><div class="flex justify-between items-start"><div class="border-2 border-rose-500 rounded-lg p-3 text-rose-600 font-extrabold text-3xl print:text-2xl print:p-2 print:rounded-none shadow-sm print:shadow-none bg-rose-50">${subject}</div><div class="text-center flex-grow"><h1 class="text-5xl font-extrabold mb-2 print:text-4xl print:mb-1 text-slate-800 tracking-tight">&lt;자리배치표&gt;</h1></div><div class="w-40 print:w-28"></div></div><div class="text-2xl text-center space-y-1.5 mt-4 pt-4 border-t border-slate-200 print:border-t-0 print:text-xl print:mt-1 print:pt-1 font-medium text-slate-700"><div class="inline-block mr-6"><span class="text-slate-400 mr-2">과목명</span><span class="font-bold">${subject}</span></div><div class="inline-block mr-6"><span class="text-slate-400 mr-2">고사실</span><span class="font-bold text-rose-600">${room}</span></div><div class="inline-block"><span class="text-slate-400 mr-2">지도교사</span><span class="font-bold">${proctor}</span></div></div></div><div class="flex justify-center my-8 print:my-4"><div class="border-2 border-blue-800 bg-blue-800 text-white rounded-lg p-3 w-56 text-center font-bold text-2xl print:text-xl print:p-2 print:rounded-none shadow-md print:shadow-none tracking-widest">교 탁</div></div><div class="grid grid-cols-5 gap-4 print:gap-2">${seats}</div></div>`;
             };
         });
     </script>
