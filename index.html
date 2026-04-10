@@ -107,8 +107,8 @@
 </head>
 <body class="bg-[#F4F6F9] font-sans antialiased text-slate-800 min-h-screen flex flex-col">
     <div id="root" class="flex-grow flex flex-col">
-        <!-- 헤더 영역 (다크 블루 그라데이션 적용) -->
-        <header class="bg-gradient-to-r from-[#0f172a] via-[#1e293b] to-[#334155] pt-16 pb-24 px-4 shadow-lg print-hidden">
+        <!-- 헤더 영역 (이미지 기반 블루 그라데이션 적용) -->
+        <header class="bg-gradient-to-r from-[#0a1835] via-[#0a488c] to-[#008fc7] pt-16 pb-24 px-4 shadow-lg print-hidden relative overflow-hidden">
             <div class="max-w-7xl mx-auto text-center relative z-10">
                 <!-- 뱃지 -->
                 <div class="inline-flex items-center justify-center space-x-2 bg-white/10 rounded-full px-5 py-1.5 mb-6 border border-white/10 backdrop-blur-md shadow-inner">
@@ -120,10 +120,11 @@
                     <span class="text-yellow-400 text-xs font-bold ml-2 px-2 border-l border-white/30">SMART SYSTEM</span>
                 </div>
                 <h1 class="text-4xl sm:text-5xl font-extrabold text-white mb-5 tracking-tight drop-shadow-sm">시험 현황 자동화 시스템</h1>
-                <p class="text-slate-300 text-lg max-w-2xl mx-auto font-medium">업로드된 시간표 데이터를 분석하여 최적화된 응시현황표와 자리배치표를 빠르고 정확하게 생성합니다.</p>
+                <p class="text-blue-100 text-lg max-w-2xl mx-auto font-medium">업로드된 시간표 데이터를 분석하여 최적화된 응시현황표와 자리배치표를 빠르고 정확하게 생성합니다.</p>
             </div>
             <!-- 배경 장식용 빛번짐 효과 -->
-            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-blue-500/20 blur-[100px] rounded-full pointer-events-none"></div>
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-cyan-400/20 blur-[100px] rounded-full pointer-events-none"></div>
+            <div class="absolute -bottom-24 left-0 w-64 h-64 bg-blue-500/20 blur-[80px] rounded-full pointer-events-none"></div>
         </header>
 
         <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-8 -mt-16 relative z-20 pb-16">
