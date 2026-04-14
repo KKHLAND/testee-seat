@@ -479,9 +479,40 @@
             };
 
             const generateSeatingChart = ({ students, subject, room, proctor, logo }) => {
-                const numStudents = students.length; const numCols = 5; const numRows = numStudents > 0 ? Math.ceil(numStudents / numCols) : 0; const totalSeats = numRows * numCols;
+                const numStudents = students.length; 
+                const numCols = 5; 
+                
+                let numRows = numStudents > 0 ? Math.ceil(numStudents / numCols) : 0; 
+                const isSpecial31 = numStudents === 31;
+                if (isSpecial31) {
+                    numRows = 7;
+                }
+
+                const totalSeats = numRows * numCols;
                 const seats = Array.from({ length: totalSeats }).map((_, index) => {
-                    const rowIndex = Math.floor(index / numCols); const colIndex = index % numCols; const studentIndex = colIndex * numRows + rowIndex; const student = studentIndex < numStudents ? students[studentIndex] : undefined; const seatNumber = studentIndex + 1;
+                    const rowIndex = Math.floor(index / numCols); 
+                    const colIndex = index % numCols; 
+                    
+                    let studentIndex;
+                    if (isSpecial31) {
+                        if (rowIndex < 6) {
+                            studentIndex = colIndex * 6 + rowIndex;
+                        } else {
+                            // 7번째 줄(rowIndex 6), 오른쪽에서 두 번째 줄(colIndex 3)에 31번 학생 배치
+                            studentIndex = (colIndex === 3) ? 30 : -1;
+                        }
+                    } else {
+                        studentIndex = colIndex * numRows + rowIndex;
+                    }
+
+                    const student = (studentIndex >= 0 && studentIndex < numStudents) ? students[studentIndex] : undefined; 
+                    const seatNumber = studentIndex + 1;
+
+                    // 31명 특수 레이아웃에서 7번째 줄의 빈칸은 투명 공간으로 처리
+                    if (isSpecial31 && rowIndex === 6 && colIndex !== 3) {
+                        return `<div class="relative p-2 h-40 print:h-32"></div>`;
+                    }
+
                     return `<div class="relative border-2 border-slate-200 rounded-xl p-2 h-40 flex flex-col justify-center items-center bg-slate-50 shadow-sm print:h-32 print:p-1 print:shadow-none print:rounded-lg"><div class="absolute top-1.5 left-2.5 font-bold text-slate-400 text-lg print:text-sm">${seatNumber}</div>${student ? `<div class="text-center w-full"><div class="text-xl text-blue-600 font-semibold mb-1 print:text-base">${student.studentId}</div><div class="font-extrabold text-2xl text-slate-800 tracking-wide print:text-lg bg-white rounded-md py-1 mx-1 shadow-sm border border-slate-100 print:shadow-none print:p-0">${student.name}</div></div>` : `<div aria-hidden="true">&nbsp;</div>`}</div>`;
                 }).join('');
                 const logoDiv = logo ? `<div style="background-image: url(${logo});" class="bg-contain bg-center bg-no-repeat absolute print-logo-position" aria-label="School Logo" role="img"></div>` : '';
